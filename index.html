@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Overlay PRO Focus+</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+
+<style>
+body{
+    margin:0;
+    font-family:Arial;
+    color:white;
+    background: radial-gradient(circle,#0a001a,#000);
+    overflow:hidden;
+}
+
+/* LOADING */
+#loading{
+    position:fixed;
+    width:100%;
+    height:100%;
+    background:#000;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:#9d4dff;
+}
+
+/* LOGIN */
+#login{display:none;text-align:center;margin-top:120px;}
+
+input,button{
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    margin:5px;
+}
+
+button{
+    background:#6a00ff;
+    color:white;
+}
+
+/* APP */
+#app{display:none;}
+
+/* OVERLAY */
+.crosshair{
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    pointer-events:none;
+}
+
+.line{
+    position:fixed;
+    top:50%;
+    left:0;
+    width:100%;
+    height:2px;
+    opacity:0.3;
+}
+
+.vignette{
+    position:fixed;
+    width:100%;
+    height:100%;
+    box-shadow:inset 0 0 120px rgba(0,0,0,0.6);
+    pointer-events:none;
+}
+
+/* BOTÃO */
+.floating-btn{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    background:#111;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    font-size:28px;
+}
+
+/* PAINEL */
+.panel{
+    position:fixed;
+    bottom:100px;
+    right:20px;
+    width:250px;
+    background:rgba(20,0,50,0.7);
+    backdrop-filter:blur(10px);
+    border-radius:15px;
+    padding:15px;
+    display:none;
+}
+
+.btn{
+    display:flex;
+    justify-content:space-between;
+    margin:8px 0;
+    background:#1a003d;
+    padding:10px;
+    border-radius:10px;
+}
+
+.toggle{
+    width:40px;
+    height:20px;
+    background:#444;
+    border-radius:20px;
+    position:relative;
+}
+
+.toggle::after{
+    content:"";
+    width:18px;
+    height:18px;
+    background:white;
+    position:absolute;
+    top:1px;
+    left:1px;
+    border-radius:50%;
+}
+
+.active{
+    background:#6a00ff;
+}
+
+.active::after{
+    left:21px;
+}
+
+/* ANIMAÇÃO */
+@keyframes pulse{
+    0%{opacity:1;}
+    50%{opacity:0.4;}
+    100%{opacity:1;}
+}
+</style>
+</head>
+
+<body>
+
+<div id="loading">⚡ Carregando...</div>
+
+<div id="login">
+<h2>Auxílio PRO+</h2>
+<input id="user" placeholder="Usuário"><br>
+<input id="pass" type="password" placeholder="Senha"><br>
+<button onclick="login()">Entrar</button>
+</div>
+
+<div id="app">
+
+<div id="overlay">
+    <div id="crosshair" class="crosshair"></div>
+    <div id="line" class="line"></div>
+    <div class="vignette"></div>
+</div>
+
+<div class="panel" id="panel">
+
+<button onclick="esconderPainel()" style="width:100%;background:#ff0040;">
+👁️ Esconder
+</button>
+
+<div class="btn">Cross <div class="toggle" onclick="setMode('cross')"></div></div>
+<div class="btn">Dot <div class="toggle" onclick="setMode('dot')"></div></div>
+<div class="btn">Circle <div class="toggle" onclick="setMode('circle')"></div></div>
+<div class="btn">Pulse <div class="toggle" onclick="togglePulse(this)"></div></div>
+
+<hr>
+
+🎨 Cor
+<input type="color" id="colorPicker">
+
+📏 Tamanho
+<input type="range" min="10" max="80" id="sizeSlider">
+
+<button onclick="toggleOverlay()">ON/OFF Overlay</button>
+
+<hr>
+
+<h3>💎 Premium</h3>
+<button onclick="comprar()">Ativar</button>
+
+<div id="premiumArea" style="display:none;">
+<button onclick="miraPremium()">Ultra Mira</button>
+</div>
+
+</div>
+
+<div class="floating-btn" id="btn">⚙️</div>
+
+</div>
+
+<script>
+let aberto=false;
+let mode="cross";
+let pulse=false;
+
+/* LOGIN */
+function login(){
+    if(user.value && pass.value){
+        localStorage.user=user.value;
+        login.style.display="none";
+        app.style.display="block";
+    }
+}
+
+/* PAINEL */
+btn.onclick=()=>{
+    aberto=!aberto;
+    panel.style.display = aberto ? "block":"none";
+};
+
+function esconderPainel(){
+    panel.style.display="none";
+}
+
+/* SEGURAR 2s */
+let holdTimer;
+document.addEventListener("touchstart",()=>{
+    holdTimer=setTimeout(()=>{
+        btn.style.display="flex";
+        panel.style.display="block";
+    },2000);
+});
+document.addEventListener("touchend",()=>clearTimeout(holdTimer));
+
+/* MIRA */
+function draw(){
+    let cor=localStorage.cor;
+    let size=localStorage.size;
+
+    line.style.background=cor;
+
+    if(mode==="cross"){
+        crosshair.innerHTML=`
+        <div style="width:2px;height:${size}px;background:${cor};position:absolute;left:50%"></div>
+        <div style="height:2px;width:${size}px;background:${cor};position:absolute;top:50%"></div>`;
+    }
+
+    if(mode==="dot"){
+        crosshair.innerHTML=`<div style="width:${size/2}px;height:${size/2}px;background:${cor};border-radius:50%"></div>`;
+    }
+
+    if(mode==="circle"){
+        crosshair.innerHTML=`<div style="width:${size}px;height:${size}px;border:2px solid ${cor};border-radius:50%"></div>`;
+    }
+
+    crosshair.style.animation = pulse ? "pulse 1s infinite" : "none";
+}
+
+/* CONTROLES */
+function setMode(m){mode=m;draw();}
+function togglePulse(el){pulse=!pulse;el.classList.toggle("active");draw();}
+
+colorPicker.oninput=(e)=>{
+    localStorage.cor=e.target.value;
+    draw();
+};
+
+sizeSlider.oninput=(e)=>{
+    localStorage.size=e.target.value;
+    draw();
+};
+
+/* OVERLAY */
+function toggleOverlay(){
+    overlay.style.display = overlay.style.display==="none"?"block":"none";
+}
+
+/* PREMIUM */
+function comprar(){
+    localStorage.premium="true";
+    premiumArea.style.display="block";
+}
+
+function miraPremium(){
+    crosshair.innerHTML=`
+    <div style="width:50px;height:50px;border:2px solid gold;border-radius:50%"></div>
+    <div style="width:8px;height:8px;background:gold;border-radius:50%;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)"></div>`;
+}
+
+/* LOAD */
+window.onload=()=>{
+    localStorage.cor=localStorage.cor||"#00ffcc";
+    localStorage.size=localStorage.size||30;
+
+    colorPicker.value=localStorage.cor;
+    sizeSlider.value=localStorage.size;
+
+    draw();
+
+    setTimeout(()=>{
+        loading.style.display="none";
+        localStorage.user ? app.style.display="block" : login.style.display="block";
+    },1200);
+};
+</script>
+
+</body>
+</html>
